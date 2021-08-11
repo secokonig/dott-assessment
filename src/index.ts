@@ -1,9 +1,10 @@
 import * as readline from 'readline';
 import { Node } from './Node';
 import { Tree } from './Tree';
+import * as fs from 'fs';
 
 let rl = readline.createInterface({
-    input: process.stdin,
+    input: (process.env.FILE_INPUT ? fs.createReadStream(process.env.FILE_INPUT) : process.stdin),
     output: process.stdout,
     prompt: ''
 });
@@ -18,40 +19,36 @@ let currrentTestCase: number = 0;
 rl.on('line', input => {
 
     if (input == '') {
-        console.log(`new matrix detected! We are at input ${currrentTestCase}/${testCases}`);
         if (inputMatrix) {
             arrayOfMatrices.push(inputMatrix);
             inputMatrix = [];
         }
         if (currrentTestCase == testCases) {
-            console.log('calculate output!');
             arrayOfMatrices.forEach( matrix => {
-                console.log(`Oh hey, the distance from the first pixel is ${calculateDistance(matrix)}`);
-            })
+                outputResults(calculateDistanceMatrix(matrix, n, m));
+            });
+            process.exit(0);
         }
-        currrentTestCase = currrentTestCase++;
+        currrentTestCase = currrentTestCase+1;
         m = 0;
         n = 0;
     } else {
         if (testCases == 0) {
             testCases = +input;
             currrentTestCase = 1;
-            console.log(`Setting test cases to: ${testCases}`);
         } else {
             if (testCases != 0 && (m == 0 || n == 0)) {
                 try {
                     [n, m] = input.trim().split(" ").map(value => +value);
                     if (!(n && m)) throw 'Yes, a bad input';
-                    console.log(`Setting n and m to ${n}, ${m}`);
                 } catch (error) {
-                    console.log(`Bad input? - ${error}`);
+                    console.log(`Caught a bad input? - ${error}`);
                     process.exit(0);
                 }
             } else {
                 if (testCases != 0 && m != 0 && n != 0) {
                     try {
                         inputMatrix.push(Array.from(input).map(value => +value))
-                        console.log(`Inputted this: ${Array.from(input).map(value => +value)}`)
                     } catch (error) {
                         console.log(error);
                     }
@@ -66,11 +63,25 @@ rl.on('line', input => {
 *   between them is 1;
 *   The first white pixel encountered is the closest to the root of the tree.
 */
-const calculateDistance = (matrix: number[][]) => {
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < m; j++) {
-            let groot = new Tree(new Node(i,j,0), matrix, n, m);
-            return groot.calculateDistanceToNearestWhite(groot.root);
+const calculateDistanceMatrix = (matrix: number[][], n: number, m: number) => {
+    let results: number[][] = [];
+    for (let i = 0; i < matrix.length; i++) {
+        results.push([]);
+        for (let j = 0; j < matrix[0].length; j++) {
+            let groot = new Tree(new Node(i,j,0), matrix, matrix.length, matrix[0].length);
+            results[i].push(groot.iterateSearchTree());
         }
     }
+    return results;
+}
+
+const outputResults = (matrix: number[][]) => {
+    matrix.forEach( row => {
+        let outputLine = '';
+        row.forEach( (distance, index) => {
+            outputLine = outputLine + (index == row.length-1 ? `${distance} ` : `${distance}`);
+        });
+        console.log(outputLine);
+    });
+    console.log('');
 }
